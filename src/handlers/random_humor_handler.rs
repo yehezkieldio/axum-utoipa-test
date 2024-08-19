@@ -13,13 +13,6 @@ struct ChuckNorrisFact {
     value: String,
 }
 
-#[utoipa::path(
-    get,
-    path = "/random/humor/chucknorris",
-    responses(
-       (status = 200, description = "Returns a random Chuck Norris joke.", body = [VoidsongHumor]),
-    )
-)]
 pub async fn chuck_norris(State(state): State<AppState>) -> Result<VoidsongHumor, VoidsongError> {
     let urls: Vec<&str> = vec!["https://api.chucknorris.io/jokes/random"];
 
@@ -56,13 +49,6 @@ struct ICanHazDadJoke {
     joke: String,
 }
 
-#[utoipa::path(
-    get,
-    path = "/random/humor/dadjoke",
-    responses(
-       (status = 200, description = "Returns a random dad joke.", body = [VoidsongHumor]),
-    )
-)]
 pub async fn dad_joke(State(state): State<AppState>) -> Result<VoidsongHumor, VoidsongError> {
     let urls: Vec<&str> = vec!["https://icanhazdadjoke.com"];
 

@@ -1,4 +1,10 @@
-use axum::Router;
+use crate::utils::response::VoidsongError;
+
+use aide::{
+    axum::{routing::get, ApiRouter, IntoApiResponse},
+    openapi::{Info, OpenApi},
+};
+use axum::{Extension, Json, Router};
 use tower_http::{
     compression::CompressionLayer,
     normalize_path::{NormalizePath, NormalizePathLayer},
@@ -6,26 +12,24 @@ use tower_http::{
 };
 use tower_layer::Layer;
 use tracing::Level;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
-
-use crate::handlers::random_humor_handler;
-use crate::utils::response::VoidsongError;
 
 use super::random_route;
 
-#[derive(OpenApi)]
-#[openapi(
-    paths(random_humor_handler::chuck_norris, random_humor_handler::dad_joke),
-    tags(
-        (name = "humor", description = "Random jokes and humor."),
-    )
-)]
-struct ApiDoc {}
+async fn serve_api(Extension(api): Extension<OpenApi>) -> impl IntoApiResponse {
+    Json(api)
+}
 
 pub fn routes() -> NormalizePath<Router> {
-    let app_router = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    let mut api = OpenApi {
+        info: Info {
+            description: Some("an example API".to_string()),
+            ..Info::default()
+        },
+        ..OpenApi::default()
+    };
+
+    let app_router = ApiRouter::new()
+        .route("/api.json", get(serve_api))
         .nest("/random", random_route::routes())
         .fallback(handler_404)
         .layer(
@@ -33,7 +37,9 @@ pub fn routes() -> NormalizePath<Router> {
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         )
-        .layer(CompressionLayer::new());
+        .layer(CompressionLayer::new())
+        .finish_api(&mut api)
+        .layer(Extension(api));
 
     NormalizePathLayer::trim_trailing_slash().layer(app_router)
 }
