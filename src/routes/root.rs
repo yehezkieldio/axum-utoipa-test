@@ -6,13 +6,26 @@ use tower_http::{
 };
 use tower_layer::Layer;
 use tracing::Level;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
+use crate::handlers::random_humor_handler;
 use crate::utils::response::VoidsongError;
 
 use super::random_route;
 
+#[derive(OpenApi)]
+#[openapi(
+    paths(random_humor_handler::chuck_norris, random_humor_handler::dad_joke),
+    tags(
+        (name = "humor", description = "Random jokes and humor."),
+    )
+)]
+struct ApiDoc {}
+
 pub fn routes() -> NormalizePath<Router> {
     let app_router = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/random", random_route::routes())
         .fallback(handler_404)
         .layer(
